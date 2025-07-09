@@ -7,8 +7,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# Load Stripe secret key from environment variable
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+# Dice roll endpoint
 @app.route("/roll", methods=["POST"])
 def roll_dice():
     data = request.get_json()
@@ -16,7 +18,7 @@ def roll_dice():
     amount = float(data.get("amount", 0))
 
     if not (1 <= target <= 95):
-        return jsonify({"error": "Invalid target"}), 400
+        return jsonify({"error": "Invalid target number"}), 400
 
     roll = random.randint(1, 100)
     win = roll < target
@@ -28,10 +30,11 @@ def roll_dice():
         "payout": payout
     })
 
+# Stripe payment intent endpoint
 @app.route("/create-payment-intent", methods=["POST"])
 def create_payment_intent():
     data = request.get_json()
-    amount = int(data.get("amount", 0)) * 100  # Convert to cents
+    amount = int(data.get("amount", 0)) * 100  # Convert dollars to cents
 
     try:
         intent = stripe.PaymentIntent.create(
@@ -43,5 +46,8 @@ def create_payment_intent():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+# Main entry point with Render-compatible port binding
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
